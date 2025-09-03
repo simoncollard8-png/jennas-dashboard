@@ -10,6 +10,20 @@ import AssignmentModal from "@/components/AssignmentModal";
 
 type ViewMode = "month" | "week" | "day";
 
+// ---------- helpers ----------
+const isNoClass = (a: Assignment) => (a.status || "").toLowerCase() === "no-class";
+
+// Safely turn a hex like "#F59E0B" into "rgba(r,g,b,alpha)"
+function hexToRgba(hex?: string, alpha = 0.12) {
+  if (!hex || typeof hex !== "string") return `rgba(31,41,55,${alpha})`; // gray-800 fallback
+  const h = hex.replace("#", "");
+  if (h.length !== 6) return `rgba(31,41,55,${alpha})`;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export default function CalendarPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [cursor, setCursor] = useState(() => new Date()); // current view anchor
@@ -19,7 +33,7 @@ export default function CalendarPage() {
   async function load() {
     const { data } = await supabase
       .from("assignments")
-      .select("*, courses(id,title,professor,color)");
+      .select("*, courses(id,title,professor,color)"); // <-- joined as `courses`
     const normalized = (data ?? []).map((x: any) => ({
       ...x,
       status: toStatus(x.status),
@@ -123,18 +137,33 @@ export default function CalendarPage() {
                 >
                   <div className="text-xs text-gray-600 mb-1">{d.getDate()}</div>
                   <ul className="space-y-1">
-                    {items.map((a) => (
-                      <li
-                        key={a.id}
-                        className="px-2 py-1 bg-rose-50 border border-rose-200 rounded hover:bg-rose-100 cursor-pointer"
-                        onClick={() => setSelected(a)}
-                      >
-                        <span className="font-medium">{a.title}</span>
-                        {a.course?.title && (
-                          <span className="text-xs text-gray-600 ml-1">({a.course.title})</span>
-                        )}
-                      </li>
-                    ))}
+                    {items.map((a) => {
+                      // use joined relation name `courses`
+                      const course = (a as any).courses || {};
+                      const color = course?.color || "#1F2937";
+                      const bg = hexToRgba(color, 0.15);
+                      const border = color;
+
+                      return (
+                        <li
+                          key={a.id}
+                          className="px-2 py-1 rounded border cursor-pointer"
+                          onClick={() => setSelected(a)}
+                          style={{
+                            backgroundColor: isNoClass(a) ? "#ecfdf5" : bg,      // emerald-50 for no-class
+                            borderColor: isNoClass(a) ? "#10b981" : border,      // emerald-500
+                            color: isNoClass(a) ? "#047857" : color,             // emerald-700
+                          }}
+                        >
+                          <span className="font-semibold">{a.title}</span>
+                          {course?.title && (
+                            <span className="text-xs ml-1 font-medium" style={{ color }}>
+                              ({course.title})
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               );
@@ -159,23 +188,43 @@ export default function CalendarPage() {
                   return d >= start && d < end;
                 })
                 .sort((a, b) => a.due_date.localeCompare(b.due_date))
-                .map((a) => (
-                  <li
-                    key={a.id}
-                    className="flex items-center justify-between gap-3 px-3 py-2 border rounded-lg bg-white hover:bg-rose-50 cursor-pointer"
-                    onClick={() => setSelected(a)}
-                  >
-                    <div>
-                      <div className="font-semibold">{a.title}</div>
-                      <div className="text-xs text-gray-600">
-                        {a.due_date} {a.course?.title ? `— ${a.course.title}` : ""}
+                .map((a) => {
+                  const course = (a as any).courses || {};
+                  const color = course?.color || "#1F2937";
+                  const bg = hexToRgba(color, 0.12);
+                  const border = color;
+
+                  return (
+                    <li
+                      key={a.id}
+                      className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border bg-white hover:bg-rose-50 cursor-pointer"
+                      onClick={() => setSelected(a)}
+                      style={{
+                        backgroundColor: isNoClass(a) ? "#ecfdf5" : bg,
+                        borderColor: isNoClass(a) ? "#10b981" : border,
+                      }}
+                    >
+                      <div>
+                        <div className="font-semibold" style={{ color: isNoClass(a) ? "#047857" : color }}>
+                          {a.title}
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {a.due_date} {course?.title ? `— ${course.title}` : ""}
+                        </div>
                       </div>
-                    </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full border">
-                      {a.status}
-                    </span>
-                  </li>
-                ))}
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full border"
+                        style={{
+                          color: isNoClass(a) ? "#047857" : color,
+                          borderColor: isNoClass(a) ? "#10b981" : border,
+                          backgroundColor: isNoClass(a) ? "#ecfdf5" : hexToRgba(color, 0.08),
+                        }}
+                      >
+                        {a.status}
+                      </span>
+                    </li>
+                  );
+                })}
             </ul>
           </div>
         )}
@@ -187,21 +236,43 @@ export default function CalendarPage() {
               {cursor.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
             </h3>
             <ul className="space-y-2">
-              {(listByDay.get(fmt(cursor)) ?? []).map((a) => (
-                <li
-                  key={a.id}
-                  className="flex items-center justify-between gap-3 px-3 py-2 border rounded-lg bg-white hover:bg-rose-50 cursor-pointer"
-                  onClick={() => setSelected(a)}
-                >
-                  <div>
-                    <div className="font-semibold">{a.title}</div>
-                    <div className="text-xs text-gray-600">
-                      {a.course?.title ? a.course.title : ""}
+              {(listByDay.get(fmt(cursor)) ?? []).map((a) => {
+                const course = (a as any).courses || {};
+                const color = course?.color || "#1F2937";
+                const bg = hexToRgba(color, 0.12);
+                const border = color;
+
+                return (
+                  <li
+                    key={a.id}
+                    className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border bg-white hover:bg-rose-50 cursor-pointer"
+                    onClick={() => setSelected(a)}
+                    style={{
+                      backgroundColor: isNoClass(a) ? "#ecfdf5" : bg,
+                      borderColor: isNoClass(a) ? "#10b981" : border,
+                    }}
+                  >
+                    <div>
+                      <div className="font-semibold" style={{ color: isNoClass(a) ? "#047857" : color }}>
+                        {a.title}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {course?.title ? course.title : ""}
+                      </div>
                     </div>
-                  </div>
-                  <span className="text-xs px-2 py-0.5 rounded-full border">{a.status}</span>
-                </li>
-              ))}
+                    <span
+                      className="text-xs px-2 py-0.5 rounded-full border"
+                      style={{
+                        color: isNoClass(a) ? "#047857" : color,
+                        borderColor: isNoClass(a) ? "#10b981" : border,
+                        backgroundColor: isNoClass(a) ? "#ecfdf5" : hexToRgba(color, 0.08),
+                      }}
+                    >
+                      {a.status}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -213,19 +284,3 @@ export default function CalendarPage() {
     </main>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
