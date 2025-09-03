@@ -1,62 +1,92 @@
 // components/AssignmentList.tsx
 "use client";
 
-import { useMemo } from "react";
+import React from "react";
 import type { Assignment } from "@/lib/types";
-import { toStatus } from "@/lib/types";
 
-interface Props {
+type Props = {
   assignments: Assignment[];
   showCourseName?: boolean;
   hideDone?: boolean;
-  onSelect?: (a: Assignment) => void;  // click to open modal (or anything)
-}
+  onSelect?: (a: any) => void; // ModalAssignment-compatible
+};
 
-export default function AssignmentList({ assignments, showCourseName, hideDone, onSelect }: Props) {
-  const rows = useMemo(() => {
-    return assignments
-      .map((a) => ({ ...a, status: toStatus(a.status) }))
-      .filter((a) => (hideDone ? a.status !== "done" : true))
-      .sort((a, b) => a.due_date.localeCompare(b.due_date));
-  }, [assignments, hideDone]);
+const isDone = (a: Assignment) => (a.status || "").toLowerCase() === "done";
+const isNoClass = (a: Assignment) => (a.status || "").toLowerCase() === "no-class";
 
-  if (!rows.length) {
-    return <p className="text-sm text-gray-500">Nothing yet.</p>;
+const formatDate = (d: string | Date) => {
+  const date = typeof d === "string" ? new Date(d) : d;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    weekday: "short",
+  }).format(date);
+};
+
+export default function AssignmentList({
+  assignments,
+  showCourseName,
+  hideDone,
+  onSelect,
+}: Props) {
+  let list = assignments;
+  if (hideDone) list = list.filter(a => !isDone(a));
+
+  if (!list.length) {
+    return <p className="text-sm text-gray-500 italic">Nothing to show.</p>;
   }
 
   return (
-    <ul className="space-y-2">
-      {rows.map((a) => (
-        <li
-          key={a.id}
-          className="flex items-center justify-between gap-3 px-3 py-2 border rounded-lg bg-white/70 hover:bg-white transition cursor-pointer"
-          onClick={() => onSelect?.(a)}
-        >
-          <div>
-            <div className="font-semibold">
-              {a.title}
-              {showCourseName && a.course?.title ? (
-                <span className="ml-2 text-sm text-gray-500">({a.course.title})</span>
-              ) : null}
-            </div>
-            <div className="text-xs text-gray-600">Due {a.due_date}</div>
-          </div>
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full border ${
-              a.status === "done"
-                ? "bg-emerald-600 text-white border-emerald-600"
-                : a.status === "in-progress"
-                ? "bg-amber-500/20 border-amber-500 text-amber-700"
-                : "border-gray-300 text-gray-700"
-            }`}
+    <div className="divide-y divide-gray-100">
+      {list.map((a) => {
+        const course = (a as any).courses || {}; // joined via supabase select
+        const courseTitle: string = course?.title || a.course_id;
+        const courseColor: string = course?.color || "#1F2937";
+
+        return (
+          <button
+            key={a.id}
+            onClick={() => onSelect?.(a)}
+            className="w-full text-left py-2 hover:bg-rose-50 rounded-lg px-2 transition"
           >
-            {a.status}
-          </span>
-        </li>
-      ))}
-    </ul>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  {showCourseName && (
+                    <span
+                      className="px-2 py-0.5 rounded-md text-xs font-semibold border"
+                      style={{
+                        backgroundColor: `${courseColor}20`,
+                        color: courseColor,
+                        borderColor: courseColor,
+                      }}
+                    >
+                      {courseTitle}
+                    </span>
+                  )}
+                  <span
+                    className={`font-medium truncate ${
+                      isNoClass(a) ? "text-emerald-700" : "text-gray-900"
+                    }`}
+                  >
+                    {a.title}
+                  </span>
+                </div>
+                {a.notes && (
+                  <div className="text-xs text-gray-500 mt-0.5 truncate">{a.notes}</div>
+                )}
+              </div>
+              <div className="shrink-0 text-sm font-semibold text-gray-700">
+                {formatDate(a.due_date as any)}
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
   );
 }
+
 
 
 

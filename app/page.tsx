@@ -11,7 +11,7 @@ import AssignmentForm from "@/components/AssignmentForm";
 import AssignmentList from "@/components/AssignmentList";
 import AssignmentModal from "@/components/AssignmentModal";
 
-// ---------- EST helpers (avoid off-by-one across timezones) ----------
+// ---------- EST helpers ----------
 const TZ = "America/New_York";
 
 const toESTDate = (isoOrDate: string | Date): Date => {
@@ -26,23 +26,19 @@ const toESTDate = (isoOrDate: string | Date): Date => {
   const yyyy = get("year");
   const mm = get("month");
   const dd = get("day");
-  // Construct a local Date that represents midnight in EST of that Y-M-D
   return new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
 };
 
 const todayEST = (): Date => toESTDate(new Date());
-
 const startOfWeekEST = (ref: Date): Date => {
-  // Monday-start week
   const weekday = new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short" }).format(ref);
   const idxMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   const idx = idxMap[weekday as keyof typeof idxMap] ?? 0;
-  const deltaToMonday = idx === 0 ? 6 : idx - 1; // if Sunday, go back 6; otherwise idx-1
+  const deltaToMonday = idx === 0 ? 6 : idx - 1;
   const start = new Date(ref);
   start.setDate(start.getDate() - deltaToMonday);
   return toESTDate(start);
 };
-
 const endOfWeekEST = (start: Date): Date => {
   const end = new Date(start);
   end.setDate(end.getDate() + 6);
@@ -58,6 +54,7 @@ export default function DashboardPage() {
     const { data: c } = await supabase.from("courses").select("*");
     setCourses((c ?? []) as Course[]);
 
+    // join to get course color/title for pills
     const { data: a } = await supabase
       .from("assignments")
       .select("*, courses(id,title,professor,color)");
@@ -82,7 +79,7 @@ export default function DashboardPage() {
   const weekStart = startOfWeekEST(today);
   const weekEnd = endOfWeekEST(weekStart);
 
-  // Coming This Week: Mon-Sun, exclude no-class
+  // Coming This Week: Mon–Sun, exclude no-class
   const comingThisWeek = useMemo(
     () =>
       assignments
@@ -126,7 +123,12 @@ export default function DashboardPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             {courses.map((c) => (
               <div key={c.id} className="bg-white/95 shadow rounded-xl p-4 border hover:shadow-2xl">
-                <h3 className={`font-bold text-lg ${c.color ?? ""}`}>{c.title}</h3>
+                <h3
+                  className="font-bold text-lg"
+                  style={{ color: c.color || "#1F2937" }}
+                >
+                  {c.title}
+                </h3>
                 <p className="text-sm text-gray-600">Prof. {c.professor ?? "—"}</p>
               </div>
             ))}
@@ -140,7 +142,7 @@ export default function DashboardPage() {
             onCreated={() => load()}
           />
 
-          {/* Coming This Week (restored) */}
+          {/* Coming This Week */}
           <h2 className="text-2xl font-serif mt-6 mb-3 border-b pb-2">Coming This Week</h2>
           {comingThisWeek.length === 0 ? (
             <p className="text-sm text-gray-500 italic">No deadlines this week 🎉</p>
@@ -153,7 +155,7 @@ export default function DashboardPage() {
             />
           )}
 
-          {/* Upcoming Deadlines (filtered & capped) */}
+          {/* Upcoming Deadlines */}
           <h2 className="text-2xl font-serif mt-6 mb-3 border-b pb-2">Upcoming Deadlines</h2>
           <AssignmentList
             assignments={upcoming}
@@ -189,6 +191,7 @@ export default function DashboardPage() {
     </main>
   );
 }
+
 
 
 
