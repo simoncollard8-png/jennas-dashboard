@@ -1,48 +1,66 @@
+// components/AssignmentList.tsx
 "use client";
 
-import React from "react";
-import { Assignment } from "../app/page"; // ✅ import the shared type
+import { useMemo } from "react";
+import type { Assignment } from "@/lib/types";
+import { toStatus } from "@/lib/types";
 
-interface AssignmentListProps {
+interface Props {
   assignments: Assignment[];
-  showCheckOff?: boolean;
-  onCheckOff?: (id: number) => void;
-  onClickAssignment?: (assignment: Assignment) => void;
+  showCourseName?: boolean;
+  hideDone?: boolean;
+  onSelect?: (a: Assignment) => void;  // click to open modal (or anything)
 }
 
-export default function AssignmentList({
-  assignments,
-  showCheckOff,
-  onCheckOff,
-  onClickAssignment,
-}: AssignmentListProps) {
+export default function AssignmentList({ assignments, showCourseName, hideDone, onSelect }: Props) {
+  const rows = useMemo(() => {
+    return assignments
+      .map((a) => ({ ...a, status: toStatus(a.status) }))
+      .filter((a) => (hideDone ? a.status !== "done" : true))
+      .sort((a, b) => a.due_date.localeCompare(b.due_date));
+  }, [assignments, hideDone]);
+
+  if (!rows.length) {
+    return <p className="text-sm text-gray-500">Nothing yet.</p>;
+  }
+
   return (
     <ul className="space-y-2">
-      {assignments.map((d) => (
+      {rows.map((a) => (
         <li
-          key={d.id}
-          onClick={() => onClickAssignment && onClickAssignment(d)}
-          className="cursor-pointer flex flex-col gap-1 px-2 py-2 rounded border hover:bg-rose-50 transition-all duration-300"
+          key={a.id}
+          className="flex items-center justify-between gap-3 px-3 py-2 border rounded-lg bg-white/70 hover:bg-white transition cursor-pointer"
+          onClick={() => onSelect?.(a)}
         >
-          <span className={`font-bold ${d.color}`}>{d.assignment}</span>
-          <span className="text-sm text-gray-600">{d.course} — {d.date}</span>
-
-          {showCheckOff && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onCheckOff && onCheckOff(d.id);
-              }}
-              className="mt-1 text-xs bg-rose-600 text-white px-2 py-1 rounded hover:bg-rose-700"
-            >
-              Mark Done
-            </button>
-          )}
+          <div>
+            <div className="font-semibold">
+              {a.title}
+              {showCourseName && a.course?.title ? (
+                <span className="ml-2 text-sm text-gray-500">({a.course.title})</span>
+              ) : null}
+            </div>
+            <div className="text-xs text-gray-600">Due {a.due_date}</div>
+          </div>
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full border ${
+              a.status === "done"
+                ? "bg-emerald-600 text-white border-emerald-600"
+                : a.status === "in-progress"
+                ? "bg-amber-500/20 border-amber-500 text-amber-700"
+                : "border-gray-300 text-gray-700"
+            }`}
+          >
+            {a.status}
+          </span>
         </li>
       ))}
     </ul>
   );
 }
+
+
+
+
 
 
 

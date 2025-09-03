@@ -1,105 +1,147 @@
+// components/AssignmentForm.tsx
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
+import type { Course, Assignment, Status } from "@/lib/types";
+import { supabase } from "@/lib/supabaseClient";
 
-interface AssignmentFormProps {
-  onAdd: (
-    course: string,
-    assignment: string,
-    due: string,
-    notes: string,
-    grade: number | null
-  ) => void;
+interface Props {
+  courses: Course[];
+  onCreated?: (a: Assignment) => void;
 }
 
-const courses = [
-  "HISP 485",
-  "HISP 355",
-  "ARTH 330",
-  "ARTH 420",
-  "HISP 404",
-  "ARTH 350",
-  "IDLS 499"
-];
-
-export default function AssignmentForm({ onAdd }: AssignmentFormProps) {
-  const [course, setCourse] = useState("");
-  const [assignment, setAssignment] = useState("");
-  const [due, setDue] = useState("");
+export default function AssignmentForm({ courses, onCreated }: Props) {
+  const [open, setOpen] = useState(false);
+  const [course_id, setCourse] = useState(courses[0]?.id ?? "");
+  const [title, setTitle] = useState("");
+  const [due_date, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [grade, setGrade] = useState<number | null>(null);
+  const [status, setStatus] = useState<Status>("todo");
+  const [saving, setSaving] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!course || !assignment || !due) return;
-    onAdd(course, assignment, due, notes, grade);
-    setCourse("");
-    setAssignment("");
-    setDue("");
+    if (!course_id || !title || !due_date) return;
+
+    setSaving(true);
+    const { data, error } = await supabase
+      .from("assignments")
+      .insert([{ course_id, title, due_date, notes: notes || null, status }])
+      .select("*, courses(id,title,professor,color)")
+      .single();
+
+    setSaving(false);
+    if (error) {
+      console.error(error);
+      alert("Failed to add");
+      return;
+    }
+    onCreated?.(data as any);
+    setOpen(false);
+    setTitle("");
+    setDueDate("");
     setNotes("");
-    setGrade(null);
-  };
+    setStatus("todo");
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="mb-4 space-y-3">
-      {/* Course Dropdown */}
-      <select
-        value={course}
-        onChange={(e) => setCourse(e.target.value)}
-        className="w-full px-3 py-2 border rounded"
-      >
-        <option value="">Select Course</option>
-        {courses.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
-
-      {/* Assignment */}
-      <input
-        type="text"
-        placeholder="Assignment"
-        value={assignment}
-        onChange={(e) => setAssignment(e.target.value)}
-        className="w-full px-3 py-2 border rounded"
-      />
-
-      {/* Due Date */}
-      <input
-        type="text"
-        placeholder="Due Date"
-        value={due}
-        onChange={(e) => setDue(e.target.value)}
-        className="w-full px-3 py-2 border rounded"
-      />
-
-      {/* Notes */}
-      <textarea
-        placeholder="Notes"
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        className="w-full px-3 py-2 border rounded"
-      />
-
-      {/* Grade */}
-      <input
-        type="number"
-        placeholder="Grade (optional)"
-        value={grade ?? ""}
-        onChange={(e) => setGrade(e.target.value ? Number(e.target.value) : null)}
-        className="w-full px-3 py-2 border rounded"
-      />
-
+    <div className="mb-4">
       <button
-        type="submit"
-        className="w-full bg-rose-500 text-white px-3 py-2 rounded hover:bg-rose-600 transition"
+        onClick={() => setOpen((v) => !v)}
+        className="text-sm px-3 py-1 rounded bg-rose-600 text-white"
       >
-        Add Assignment
+        {open ? "Cancel" : "Add Assignment"}
       </button>
-    </form>
+
+      {open && (
+        <form onSubmit={submit} className="mt-4 space-y-3 border rounded-xl p-4 bg-white/80">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="text-sm">
+              <span className="block mb-1 font-medium">Course</span>
+              <select
+                value={course_id}
+                onChange={(e) => setCourse(e.target.value)}
+                className="w-full border rounded-lg p-2"
+                required
+              >
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-sm">
+              <span className="block mb-1 font-medium">Due date</span>
+              <input
+                type="date"
+                value={due_date}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full border rounded-lg p-2"
+                required
+              />
+            </label>
+          </div>
+
+          <label className="text-sm block">
+            <span className="block mb-1 font-medium">Title</span>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full border rounded-lg p-2"
+              placeholder="e.g., Essay Draft"
+              required
+            />
+          </label>
+
+          <label className="text-sm block">
+            <span className="block mb-1 font-medium">Notes</span>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full border rounded-lg p-2"
+              rows={3}
+              placeholder="Optional"
+            />
+          </label>
+
+          <div className="text-sm">
+            <span className="block mb-1 font-medium">Status</span>
+            <div className="flex gap-2">
+              {(["todo", "in-progress", "done"] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStatus(s)}
+                  className={`px-3 py-1 rounded-full border ${
+                    status === s ? "bg-rose-600 text-white border-rose-600" : "border-gray-300"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-3 py-1 rounded bg-rose-600 text-white disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Add"}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
   );
 }
+
+
+
+
 
 
 

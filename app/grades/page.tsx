@@ -1,33 +1,66 @@
+// app/grades/page.tsx
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import type { Assignment } from "@/lib/types";
+import { toStatus } from "@/lib/types";
 
 export default function GradesPage() {
+  const [rows, setRows] = useState<Assignment[]>([]);
+
+  async function load() {
+    const { data } = await supabase
+      .from("assignments")
+      .select("*, courses(id,title,professor,color)");
+    setRows(
+      (data ?? []).map((x: any) => ({ ...x, status: toStatus(x.status) }))
+    );
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
   return (
-    <main
-      className="min-h-screen p-6 font-sans bg-fixed bg-cover"
-      style={{ backgroundImage: "url('/flower-bg.jpg')" }}
-    >
-      {/* Nav */}
+    <main className="min-h-screen p-6">
       <nav className="flex gap-6 justify-center mb-8 p-4 bg-rose-100/80 rounded-xl shadow-lg border border-rose-200">
         <Link href="/" className="font-bold hover:text-rose-600">Dashboard</Link>
         <Link href="/calendar" className="font-bold hover:text-rose-600">Calendar</Link>
         <Link href="/grades" className="font-bold text-rose-700 underline">Grades</Link>
       </nav>
 
-      {/* Header */}
-      <header className="text-center mb-8">
-        <h1 className="text-5xl font-serif font-bold drop-shadow-sm">Grades Overview</h1>
-        <p className="italic text-lg text-gray-700">Track GPA and course performance</p>
-      </header>
-
-      {/* Placeholder GPA Card */}
-      <section className="bg-white/95 p-6 rounded-2xl shadow-lg border border-gray-200 max-w-2xl mx-auto text-center">
-        <h2 className="text-2xl font-serif mb-4 border-b pb-2">Current GPA</h2>
-        <p className="text-6xl font-bold text-rose-700 drop-shadow">3.72</p>
-        <p className="italic text-gray-600 mt-2">On track for Magna Cum Laude</p>
-      </section>
+      <div className="max-w-3xl mx-auto bg-white/80 rounded-xl border overflow-hidden">
+        <div className="p-4 border-b">
+          <h1 className="text-xl font-semibold">Grades (placeholder)</h1>
+          <p className="text-sm text-gray-600">Wire this to your real grade calc when ready.</p>
+        </div>
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="text-left p-3">Assignment</th>
+              <th className="text-left p-3">Course</th>
+              <th className="text-left p-3">Due</th>
+              <th className="text-left p-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id} className="border-t">
+                <td className="p-3">{r.title}</td>
+                <td className="p-3">{r.course?.title ?? "—"}</td>
+                <td className="p-3">{r.due_date}</td>
+                <td className="p-3">{r.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </main>
   );
 }
+
+
+
 
