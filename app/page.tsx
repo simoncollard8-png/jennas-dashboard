@@ -3,13 +3,51 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { Assignment, Course, ModalAssignment } from "@/lib/types";
 import { toStatus } from "@/lib/types";
 import AssignmentForm from "@/components/AssignmentForm";
 import AssignmentList from "@/components/AssignmentList";
 import AssignmentModal from "@/components/AssignmentModal";
+
+// ---------- EST helpers (avoid off-by-one across timezones) ----------
+const TZ = "America/New_York";
+
+const toESTDate = (isoOrDate: string | Date): Date => {
+  const d = typeof isoOrDate === "string" ? new Date(isoOrDate) : isoOrDate;
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const get = (t: string) => parts.find(p => p.type === t)?.value || "";
+  const yyyy = get("year");
+  const mm = get("month");
+  const dd = get("day");
+  // Construct a local Date that represents midnight in EST of that Y-M-D
+  return new Date(`${yyyy}-${mm}-${dd}T00:00:00`);
+};
+
+const todayEST = (): Date => toESTDate(new Date());
+
+const startOfWeekEST = (ref: Date): Date => {
+  // Monday-start week
+  const weekday = new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short" }).format(ref);
+  const idxMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const idx = idxMap[weekday as keyof typeof idxMap] ?? 0;
+  const deltaToMonday = idx === 0 ? 6 : idx - 1; // if Sunday, go back 6; otherwise idx-1
+  const start = new Date(ref);
+  start.setDate(start.getDate() - deltaToMonday);
+  return toESTDate(start);
+};
+
+const endOfWeekEST = (start: Date): Date => {
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  return end;
+};
 
 export default function DashboardPage() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -35,6 +73,37 @@ export default function DashboardPage() {
   useEffect(() => {
     load();
   }, []);
+
+  // ---------- Filters for Upcoming & This Week (EST-aware) ----------
+  const isNoClass = (a: Assignment) => (a.status || "").toLowerCase() === "no-class";
+  const normalizeDate = (a: Assignment) => toESTDate(a.due_date);
+
+  const today = todayEST();
+  const weekStart = startOfWeekEST(today);
+  const weekEnd = endOfWeekEST(weekStart);
+
+  // Coming This Week: Mon-Sun, exclude no-class
+  const comingThisWeek = useMemo(
+    () =>
+      assignments
+        .filter(a => !isNoClass(a))
+        .filter(a => {
+          const d = normalizeDate(a);
+          return d >= weekStart && d <= weekEnd;
+        })
+        .sort((a, b) => +normalizeDate(a) - +normalizeDate(b) || a.title.localeCompare(b.title)),
+    [assignments, weekStart, weekEnd]
+  );
+
+  // Upcoming Deadlines: from start of this week forward, exclude no-class, cap to 6
+  const upcoming = useMemo(
+    () =>
+      assignments
+        .filter(a => !isNoClass(a) && normalizeDate(a) >= weekStart)
+        .sort((a, b) => +normalizeDate(a) - +normalizeDate(b) || a.title.localeCompare(b.title))
+        .slice(0, 6),
+    [assignments, weekStart]
+  );
 
   return (
     <main className="min-h-screen p-6">
@@ -71,9 +140,23 @@ export default function DashboardPage() {
             onCreated={() => load()}
           />
 
-          <h2 className="text-2xl font-serif mb-3 border-b pb-2">Upcoming Deadlines</h2>
+          {/* Coming This Week (restored) */}
+          <h2 className="text-2xl font-serif mt-6 mb-3 border-b pb-2">Coming This Week</h2>
+          {comingThisWeek.length === 0 ? (
+            <p className="text-sm text-gray-500 italic">No deadlines this week 🎉</p>
+          ) : (
+            <AssignmentList
+              assignments={comingThisWeek}
+              showCourseName
+              hideDone
+              onSelect={(a) => setSelected(a)}
+            />
+          )}
+
+          {/* Upcoming Deadlines (filtered & capped) */}
+          <h2 className="text-2xl font-serif mt-6 mb-3 border-b pb-2">Upcoming Deadlines</h2>
           <AssignmentList
-            assignments={assignments}
+            assignments={upcoming}
             showCourseName
             hideDone
             onSelect={(a) => setSelected(a)}
@@ -106,6 +189,7 @@ export default function DashboardPage() {
     </main>
   );
 }
+
 
 
 
