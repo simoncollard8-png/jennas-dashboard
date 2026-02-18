@@ -10,6 +10,7 @@ import { toStatus } from "@/lib/types";
 import AssignmentForm from "@/components/AssignmentForm";
 import AssignmentList from "@/components/AssignmentList";
 import AssignmentModal from "@/components/AssignmentModal";
+import ChatWidget from "@/components/ChatWidget";
 
 // ─── EST helpers ───────────────────────────────────────────────
 const TZ = "America/New_York";
@@ -355,6 +356,8 @@ export default function DashboardPage() {
           onUpdated={load}
         />
       )}
+
+      <ChatWidget />
     </main>
   );
 }
