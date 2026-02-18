@@ -257,7 +257,7 @@ export async function POST(req: NextRequest) {
     
     // Handle tool use
     if (response.stop_reason === 'tool_use') {
-      const toolUseBlock = response.content.find((block: any) => block.type === 'tool_use');
+      const toolUseBlock = response.content.find((block: any) => block.type === 'tool_use') as any;
       if (toolUseBlock) {
         const toolResult = await handleToolCall(toolUseBlock.name, toolUseBlock.input);
         
