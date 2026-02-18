@@ -29,9 +29,9 @@ YOUR PERSONALITY:
 CAPABILITIES:
 - Query and manage assignments
 - Help with French (vocabulary, grammar, conversation practice, essay feedback)
+- Generate study materials and exam prep
 - Provide study tips and time management advice
-- Search the web for research sources
-- Generate study materials
+- Track readings and notes
 
 Be helpful, be encouraging, be Frederick.`;
 
@@ -130,6 +130,44 @@ const tools: Anthropic.Messages.Tool[] = [
       required: ['essay_text'],
     },
   },
+  {
+    name: 'exam_prep_generator',
+    description: 'Generate study materials for an upcoming exam: study guide, practice questions, or flashcards.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        course_id: { type: 'string', description: 'Course ID for the exam' },
+        exam_topic: { type: 'string', description: 'Main topic or chapter for the exam' },
+        material_type: { 
+          type: 'string', 
+          enum: ['study_guide', 'practice_questions', 'flashcards'], 
+          description: 'Type of study material to generate'
+        },
+        difficulty: {
+          type: 'string',
+          enum: ['easy', 'medium', 'hard'],
+          description: 'Difficulty level. Default: medium'
+        },
+      },
+      required: ['course_id', 'exam_topic', 'material_type'],
+    },
+  },
+  {
+    name: 'web_search',
+    description: 'Search the web for academic resources, research sources, or factual information. Use this when Jenna needs current information or research materials.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query' },
+        focus: {
+          type: 'string',
+          enum: ['academic', 'news', 'general'],
+          description: 'Search focus. Use academic for scholarly sources. Default: general'
+        },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
 async function handleToolCall(toolName: string, toolInput: any): Promise<string> {
@@ -217,7 +255,6 @@ async function handleToolCall(toolName: string, toolInput: any): Promise<string>
       return JSON.stringify({ view, start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0], assignments: data });
     }
     
-    // French tools return instructions for Claude to handle
     case 'french_vocab_quiz':
       return JSON.stringify({ 
         instruction: `Generate a French vocabulary quiz on "${toolInput.topic}" with ${toolInput.count || 10} words. Include French word, English translation, and an example sentence for each.`
@@ -236,6 +273,27 @@ async function handleToolCall(toolName: string, toolInput: any): Promise<string>
     case 'french_essay_feedback':
       return JSON.stringify({
         instruction: `Review this French essay and provide detailed feedback on grammar, vocabulary, and style:\n\n${toolInput.essay_text}`
+      });
+
+    case 'exam_prep_generator':
+      return JSON.stringify({
+        instruction: `Generate ${toolInput.material_type} for ${toolInput.exam_topic} in course ${toolInput.course_id}. Difficulty: ${toolInput.difficulty || 'medium'}. 
+        
+        For study_guide: Create a comprehensive outline with key concepts, important dates/people/terms, and connections between topics.
+        For practice_questions: Create 10-15 questions with answers. Include multiple choice, short answer, and essay prompts.
+        For flashcards: Create 20-25 flashcard pairs (question/answer or term/definition).
+        
+        Format the output clearly with headings and structure.`
+      });
+
+    case 'web_search':
+      return JSON.stringify({
+        instruction: `I would search for "${toolInput.query}" but web search integration requires additional setup. For now, I can help you with:
+        - Suggesting search terms and resources
+        - Explaining concepts from my training data
+        - Pointing you to reliable academic databases
+        
+        What specific information are you looking for about "${toolInput.query}"?`
       });
     
     default:

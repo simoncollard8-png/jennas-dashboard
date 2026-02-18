@@ -249,3 +249,159 @@ h1, h2, h3, h4 {
   height: 1px;
   background: linear-gradient(90deg, var(--parchment-deep), transparent);
 }
+/* ============================================================
+   MOBILE OPTIMIZATION CSS
+   Add this to the END of globals.css
+   ============================================================ */
+
+/* Touch-friendly buttons */
+@media (max-width: 768px) {
+  .btn-primary,
+  .btn-secondary {
+    min-height: 44px;
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  button,
+  a {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Larger tap targets for mobile */
+  .nav-link {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  /* Better spacing on mobile */
+  .victorian-card {
+    margin-bottom: 12px;
+  }
+
+  /* Stack grid columns on mobile */
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Full width forms on mobile */
+  .victorian-input,
+  select,
+  textarea {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+
+  /* Mobile-friendly chat widget */
+  #chat-widget {
+    width: 100vw !important;
+    height: 100vh !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  /* Floating button repositioning */
+  .fixed.bottom-6.right-6 {
+    bottom: 20px;
+    right: 20px;
+  }
+
+  /* Hide desktop-only elements */
+  .desktop-only {
+    display: none;
+  }
+
+  /* Calendar improvements */
+  .calendar-grid {
+    font-size: 11px;
+  }
+
+  /* Assignment list spacing */
+  .space-y-1\.5 > * + * {
+    margin-top: 8px;
+  }
+}
+
+/* Tablet breakpoint */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Landscape mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .section-header {
+    font-size: 16px;
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
+
+  .victorian-card {
+    padding: 12px;
+  }
+}
+
+/* iOS safe area support */
+@supports (padding: env(safe-area-inset-bottom)) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .fixed.bottom-6 {
+    bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Prevent text selection on interactive elements */
+button,
+.btn-primary,
+.btn-secondary {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+/* Smooth scrolling on mobile */
+html {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Better focus states for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--gold-mid);
+  outline-offset: 2px;
+}
+
+/* Mobile-friendly modal overlays */
+@media (max-width: 768px) {
+  .fixed.inset-0 {
+    padding: 12px;
+  }
+
+  .max-w-lg {
+    max-width: 100% !important;
+  }
+}
+
+/* Optimize performance on mobile */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.victorian-card:hover {
+  transform: none; /* Disable hover transform on touch devices */
+}
+
+@media (hover: none) {
+  .victorian-card:hover {
+    transform: none;
+    box-shadow: 0 2px 8px rgba(26, 18, 9, 0.06);
+  }
+}

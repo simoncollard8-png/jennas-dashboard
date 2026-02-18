@@ -1,0 +1,42 @@
+{
+  "name": "Jenna's Dashboard",
+  "short_name": "Jenna UMW",
+  "description": "Academic planner for Jenna at University of Mary Washington",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7efe2",
+  "theme_color": "#2d4a3e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/frederick-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/frederick-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/",
+      "description": "View semester overview"
+    },
+    {
+      "name": "Calendar",
+      "url": "/calendar",
+      "description": "View calendar"
+    },
+    {
+      "name": "Grades",
+      "url": "/grades",
+      "description": "Check GPA"
+    }
+  ]
+}
