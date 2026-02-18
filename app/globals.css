@@ -249,9 +249,9 @@ h1, h2, h3, h4 {
   height: 1px;
   background: linear-gradient(90deg, var(--parchment-deep), transparent);
 }
+
 /* ============================================================
    MOBILE OPTIMIZATION CSS
-   Add this to the END of globals.css
    ============================================================ */
 
 /* Touch-friendly buttons */
@@ -267,12 +267,6 @@ h1, h2, h3, h4 {
   a {
     min-height: 44px;
     touch-action: manipulation;
-  }
-
-  /* Larger tap targets for mobile */
-  .nav-link {
-    padding: 10px 16px;
-    font-size: 14px;
   }
 
   /* Better spacing on mobile */
@@ -307,39 +301,22 @@ h1, h2, h3, h4 {
     right: 20px;
   }
 
-  /* Hide desktop-only elements */
-  .desktop-only {
-    display: none;
-  }
-
   /* Calendar improvements */
   .calendar-grid {
     font-size: 11px;
   }
 
-  /* Assignment list spacing */
-  .space-y-1\.5 > * + * {
-    margin-top: 8px;
+  /* Fix nav overflow */
+  .victorian-nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
-}
-
-/* Tablet breakpoint */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-}
-
-/* Landscape mobile */
-@media (max-width: 768px) and (orientation: landscape) {
-  .section-header {
-    font-size: 16px;
-    padding-bottom: 6px;
-    margin-bottom: 10px;
-  }
-
-  .victorian-card {
-    padding: 12px;
+  
+  .nav-link {
+    white-space: nowrap;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding: 8px 10px;
   }
 }
 
@@ -395,10 +372,7 @@ select:focus-visible {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.victorian-card:hover {
-  transform: none; /* Disable hover transform on touch devices */
-}
-
+/* Disable hover effects on touch devices */
 @media (hover: none) {
   .victorian-card:hover {
     transform: none;
