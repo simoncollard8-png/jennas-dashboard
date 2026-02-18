@@ -149,7 +149,7 @@ export default function DashboardPage() {
           <h1 className="font-['Playfair_Display'] text-4xl sm:text-5xl font-bold italic text-stone-800 leading-tight">
             Jenna's Semester
           </h1>
-          <p className="font-['Lora'] text-sm text-stone-500 mt-1 italic">Fall 2025</p>
+          <p className="font-['Lora'] text-sm text-stone-500 mt-1 italic">Spring 2026</p>
 
           {/* Semester progress */}
           <div className="max-w-lg mx-auto mt-5">
