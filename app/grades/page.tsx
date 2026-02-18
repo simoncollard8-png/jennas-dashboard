@@ -35,7 +35,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function hexToRgba(hex?: string, alpha = 0.12) {
+function hexToRgba(hex?: string | null, alpha = 0.12) {
   if (!hex || hex.length !== 7) return `rgba(139,105,20,${alpha})`;
   const r = parseInt(hex.slice(1,3),16);
   const g = parseInt(hex.slice(3,5),16);
