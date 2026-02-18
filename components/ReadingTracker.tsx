@@ -83,7 +83,7 @@ export default function ReadingTracker() {
               Week {week}
             </h3>
             <div className="space-y-2">
-              {weeklyGroups[week].map(r => (
+              {weeklyGroups[week].map((r: any) => (
                 <div
                   key={r.id}
                   className={`p-3 rounded-xl border transition-all ${
