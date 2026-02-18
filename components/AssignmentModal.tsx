@@ -12,6 +12,14 @@ interface Props {
   onUpdated?: () => void;
 }
 
+function hexToRgba(hex?: string, alpha = 0.12) {
+  if (!hex || hex.length !== 7) return `rgba(139,105,20,${alpha})`;
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 export default function AssignmentModal({ assignment, onClose, onUpdated }: Props) {
   const [local, setLocal] = useState<ModalAssignment>({
     ...assignment,
@@ -19,93 +27,150 @@ export default function AssignmentModal({ assignment, onClose, onUpdated }: Prop
   });
   const [saving, setSaving] = useState(false);
 
+  const course = (assignment as any).courses || {};
+  const color  = course?.color || "#8b6914";
+
   async function save() {
     setSaving(true);
     const { error } = await supabase
       .from("assignments")
       .update({
-        title: local.title,
-        notes: local.notes,
+        title:    local.title,
+        notes:    local.notes,
         due_date: local.due_date,
-        status: local.status,
+        status:   local.status,
       })
       .eq("id", local.id);
-
     setSaving(false);
-    if (!error) {
-      onUpdated?.();
-      onClose();
-    } else {
-      console.error(error);
-      alert("Save failed.");
-    }
-  }
-
-  function setStatus(s: Status) {
-    setLocal((p) => ({ ...p, status: s }));
+    if (!error) { onUpdated?.(); onClose(); }
+    else { console.error(error); alert("Save failed."); }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white w-full max-w-lg rounded-xl shadow-xl border p-6 relative">
-        <button
-          onClick={onClose}
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
-          aria-label="Close"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(26,18,9,0.6)", backdropFilter: "blur(4px)" }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+        style={{
+          background: "var(--parchment)",
+          border: `1px solid ${color}40`,
+        }}
+      >
+        {/* Header */}
+        <div
+          className="px-6 py-4 border-b relative"
+          style={{
+            background: hexToRgba(color, 0.1),
+            borderColor: `${color}30`,
+          }}
         >
-          ✕
-        </button>
-
-        <h2 className="text-xl font-bold mb-1">{local.title}</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          Due: {local.due_date} {local.course?.title ? `— ${local.course.title}` : ""}
-        </p>
-
-        <label className="block text-sm font-medium">Notes</label>
-        <textarea
-          value={local.notes ?? ""}
-          onChange={(e) => setLocal({ ...local, notes: e.target.value })}
-          className="w-full border rounded-lg p-2 text-sm mb-4"
-          rows={5}
-          placeholder="Add notes…"
-        />
-
-        <label className="block text-sm font-medium mb-1">Status</label>
-        <div className="flex gap-2 mb-6">
-          {(["todo", "in-progress", "done"] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatus(s)}
-              className={`px-3 py-1 rounded-full border text-sm ${
-                local.status === s ? "bg-rose-600 text-white border-rose-600" : "border-gray-300"
-              }`}
+          {/* Course pill */}
+          {course?.title && (
+            <span
+              className="inline-block px-2 py-0.5 rounded-md text-xs font-['Lora'] font-semibold border mb-2"
+              style={{
+                color,
+                borderColor: `${color}50`,
+                background: hexToRgba(color, 0.15),
+              }}
             >
-              {s}
-            </button>
-          ))}
+              {course.title}
+            </span>
+          )}
+          <h2 className="font-['Playfair_Display'] text-xl font-bold text-stone-800 pr-8">
+            {local.title}
+          </h2>
+          <p className="text-xs font-['Lora'] italic text-stone-500 mt-0.5">
+            Due: {new Date(local.due_date + "T00:00:00").toLocaleDateString("en-US", {
+              weekday: "long", month: "long", day: "numeric"
+            })}
+          </p>
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 text-stone-400 hover:text-stone-700 transition-colors text-xl leading-none"
+            aria-label="Close"
+          >
+            ✕
+          </button>
         </div>
 
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-1 rounded border">
+        {/* Body */}
+        <div className="px-6 py-5 space-y-5">
+          {/* Notes */}
+          <div>
+            <label className="block text-xs font-['Lora'] font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
+              Notes
+            </label>
+            <textarea
+              value={local.notes ?? ""}
+              onChange={e => setLocal({ ...local, notes: e.target.value })}
+              className="victorian-input resize-none"
+              rows={4}
+              placeholder="Add notes, reminders, or thoughts…"
+            />
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="block text-xs font-['Lora'] font-semibold text-stone-600 mb-2 uppercase tracking-wide">
+              Status
+            </label>
+            <div className="flex gap-2">
+              {(["todo","in-progress","done"] as const).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setLocal(p => ({ ...p, status: s }))}
+                  className="flex-1 py-2 rounded-xl text-xs font-['Lora'] capitalize transition-all border"
+                  style={local.status === s ? {
+                    background: s === "done"
+                      ? "rgba(61,107,88,0.15)"
+                      : s === "in-progress"
+                        ? "rgba(139,105,20,0.15)"
+                        : "rgba(26,18,9,0.08)",
+                    color: s === "done"
+                      ? "var(--green-mid)"
+                      : s === "in-progress"
+                        ? "var(--gold-deep)"
+                        : "var(--ink)",
+                    borderColor: s === "done"
+                      ? "rgba(61,107,88,0.4)"
+                      : s === "in-progress"
+                        ? "rgba(139,105,20,0.4)"
+                        : "rgba(26,18,9,0.2)",
+                    fontWeight: 600,
+                  } : {
+                    color: "var(--ink-light)",
+                    borderColor: "var(--parchment-deep)",
+                    background: "transparent",
+                  }}
+                >
+                  {s === "in-progress" ? "In Progress" : s === "todo" ? "To Do" : "✓ Done"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div
+          className="px-6 py-4 flex justify-end gap-3 border-t"
+          style={{ borderColor: "var(--parchment-deep)" }}
+        >
+          <button onClick={onClose} className="btn-secondary">
             Cancel
           </button>
           <button
             onClick={save}
             disabled={saving}
-            className="px-3 py-1 rounded bg-rose-600 text-white disabled:opacity-50"
+            className="btn-primary disabled:opacity-50"
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </div>
     </div>
   );
 }
-
-
-
-
-
-
-
-
