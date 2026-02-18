@@ -23,20 +23,21 @@ export async function POST(req: NextRequest) {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4000,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'document',
-            source: {
-              type: 'base64',
-              media_type: 'application/pdf',
-              data: base64,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: {
+                type: 'base64',
+                media_type: 'application/pdf',
+                data: base64,
+              },
             },
-          },
-          {
-            type: 'text',
-            text: `Parse this syllabus and extract the following information in JSON format:
+            {
+              type: 'text',
+              text: `Parse this syllabus and extract the following information in JSON format:
 
 {
   "course_code": "e.g., ARTH224",
@@ -65,10 +66,11 @@ export async function POST(req: NextRequest) {
 Extract all assignments with dates, including exams, papers, presentations, and no-class days (holidays, breaks).
 Extract all required readings organized by week if possible.
 Use YYYY-MM-DD format for all dates.
-Return ONLY the JSON, no markdown formatting or explanation.`
-          }
-        ],
-      }),
+Return ONLY the JSON, no markdown formatting or explanation.`,
+            },
+          ],
+        },
+      ],
     });
 
     const textContent = response.content
