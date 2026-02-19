@@ -168,6 +168,58 @@ const tools: Anthropic.Messages.Tool[] = [
       required: ['query'],
     },
   },
+  {
+    name: 'get_todos',
+    description: 'Get to-do list items. Can filter by completion status, category, or priority.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        completed: { type: 'boolean', description: 'Filter by completion status. Optional.' },
+        category: { type: 'string', enum: ['school', 'personal', 'errands', 'work', 'health', 'general'], description: 'Filter by category. Optional.' },
+        priority: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Filter by priority. Optional.' },
+      },
+    },
+  },
+  {
+    name: 'add_todo',
+    description: 'Add a new task to the to-do list.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Task title' },
+        description: { type: 'string', description: 'Optional task description' },
+        category: { type: 'string', enum: ['school', 'personal', 'errands', 'work', 'health', 'general'], description: 'Task category. Default: general' },
+        priority: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Task priority. Default: medium' },
+        due_date: { type: 'string', description: 'Due date in YYYY-MM-DD format. Optional.' },
+      },
+      required: ['title'],
+    },
+  },
+  {
+    name: 'update_todo',
+    description: 'Update a to-do item. Can mark as completed, change priority, or edit details.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        todo_id: { type: 'string', description: 'UUID of the todo to update' },
+        completed: { type: 'boolean', description: 'Mark as completed/uncompleted' },
+        title: { type: 'string', description: 'New title' },
+        priority: { type: 'string', enum: ['low', 'medium', 'high'], description: 'New priority' },
+      },
+      required: ['todo_id'],
+    },
+  },
+  {
+    name: 'delete_todo',
+    description: 'Delete a to-do item.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        todo_id: { type: 'string', description: 'UUID of the todo to delete' },
+      },
+      required: ['todo_id'],
+    },
+  },
 ];
 
 async function handleToolCall(toolName: string, toolInput: any): Promise<string> {
@@ -295,6 +347,63 @@ async function handleToolCall(toolName: string, toolInput: any): Promise<string>
         
         What specific information are you looking for about "${toolInput.query}"?`
       });
+
+    case 'get_todos': {
+      let query = supabase.from('todos').select('*').order('created_at', { ascending: false });
+      
+      if (toolInput.completed !== undefined) query = query.eq('completed', toolInput.completed);
+      if (toolInput.category) query = query.eq('category', toolInput.category);
+      if (toolInput.priority) query = query.eq('priority', toolInput.priority);
+      
+      const { data, error } = await query;
+      if (error) return JSON.stringify({ error: error.message });
+      return JSON.stringify(data);
+    }
+
+    case 'add_todo': {
+      const { data, error } = await supabase
+        .from('todos')
+        .insert([{
+          title: toolInput.title,
+          description: toolInput.description || null,
+          category: toolInput.category || 'general',
+          priority: toolInput.priority || 'medium',
+          due_date: toolInput.due_date || null,
+          completed: false,
+        }])
+        .select()
+        .single();
+      
+      if (error) return JSON.stringify({ error: error.message });
+      return JSON.stringify({ success: true, todo: data });
+    }
+
+    case 'update_todo': {
+      const updates: any = {};
+      if (toolInput.completed !== undefined) updates.completed = toolInput.completed;
+      if (toolInput.title) updates.title = toolInput.title;
+      if (toolInput.priority) updates.priority = toolInput.priority;
+      
+      const { data, error } = await supabase
+        .from('todos')
+        .update(updates)
+        .eq('id', toolInput.todo_id)
+        .select()
+        .single();
+      
+      if (error) return JSON.stringify({ error: error.message });
+      return JSON.stringify({ success: true, todo: data });
+    }
+
+    case 'delete_todo': {
+      const { error } = await supabase
+        .from('todos')
+        .delete()
+        .eq('id', toolInput.todo_id);
+      
+      if (error) return JSON.stringify({ error: error.message });
+      return JSON.stringify({ success: true, deleted: true });
+    }
     
     default:
       return JSON.stringify({ error: 'Unknown tool' });

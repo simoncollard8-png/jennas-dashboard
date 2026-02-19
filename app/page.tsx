@@ -133,6 +133,8 @@ export default function DashboardPage() {
             <Link href="/calendar" className="nav-link">Calendar</Link>
             <span className="text-green-700 text-xs">·</span>
             <Link href="/grades" className="nav-link">Grades</Link>
+            <Link href="/todos" className="nav-link">To-Dos</Link>
+            <Link href="/syllabus-upload" className="nav-link">Upload Syllabus</Link>
           </div>
           <div className="text-xs text-green-300 opacity-60 font-['Lora'] italic">
             {new Date().toLocaleDateString("en-US", { weekday:"short", month:"short", day:"numeric" })}
