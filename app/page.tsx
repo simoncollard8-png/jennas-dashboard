@@ -180,9 +180,10 @@ export default function DashboardPage() {
                   <p className="text-sm text-stone-400 italic col-span-2">No courses loaded yet.</p>
                 )}
                 {courses.map((c, i) => (
-                  <div
+                  <Link
                     key={c.id}
-                    className="group relative rounded-xl p-3.5 border transition-all duration-200 hover:shadow-md cursor-default"
+                    href={`/Courses/${c.id}`}
+                    className="group relative rounded-xl p-3.5 border transition-all duration-200 hover:shadow-md hover:scale-[1.01] cursor-pointer block"
                     style={{
                       borderColor: `${c.color || "#8b6914"}40`,
                       background: `${c.color || "#8b6914"}08`,
@@ -192,20 +193,28 @@ export default function DashboardPage() {
                       className="absolute left-0 top-3 bottom-3 w-0.5 rounded-full"
                       style={{ backgroundColor: c.color || "#8b6914" }}
                     />
-                    <div className="pl-3">
-                      <p
-                        className="font-['Playfair_Display'] font-semibold text-sm leading-tight"
-                        style={{ color: c.color || "#3d2e1a" }}
-                      >
-                        {c.title}
-                      </p>
-                      {c.professor && (
-                        <p className="text-xs text-stone-500 mt-0.5 font-['Lora'] italic">
-                          {c.professor}
+                    <div className="pl-3 flex items-center justify-between">
+                      <div>
+                        <p
+                          className="font-['Playfair_Display'] font-semibold text-sm leading-tight"
+                          style={{ color: c.color || "#3d2e1a" }}
+                        >
+                          {c.title}
                         </p>
-                      )}
+                        {c.professor && (
+                          <p className="text-xs text-stone-500 mt-0.5 font-['Lora'] italic">
+                            {c.professor}
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className="text-xs opacity-0 group-hover:opacity-60 transition-opacity ml-2 flex-shrink-0"
+                        style={{ color: c.color || "#8b6914" }}
+                      >
+                        →
+                      </span>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
